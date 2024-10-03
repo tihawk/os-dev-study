@@ -10,6 +10,8 @@ OD_HEX_FLAG = -t x1
 # Files
 BOOT_SEC_SRC = $(wildcard src/boot*.asm)
 BOOT_SEC_BIN = bin/boot.bin
+KERNEL_ENTRY_SRC = src/kernel_entry.asm
+KERNEL_ENTRY_OBJ = obj/kernel_entry.o
 KERNEL_SRC = $(wildcard src/*.c)
 KERNEL_OBJ = $(patsubst src/%.c, obj/%.o, $(KERNEL_SRC))
 KERNEL_BIN = bin/kernel.bin
@@ -52,8 +54,11 @@ dump: octal hex
 
 # KERNEL
 
-$(KERNEL_BIN): $(KERNEL_OBJ)
+$(KERNEL_BIN): $(KERNEL_ENTRY_OBJ) $(KERNEL_OBJ)
 	ld -o $@ -Ttext 0x1000 $? --oformat binary
+
+$(KERNEL_ENTRY_OBJ): $(KERNEL_ENTRY_SRC)
+	$(ASM) $? -f elf64 -o $@
 
 $(KERNEL_OBJ): $(KERNEL_SRC)
 	gcc -ffreestanding -c $? -o $@
