@@ -11,7 +11,7 @@ OD_BINARY_FLAG = -t b1
 # Files
 BIN = bin/os.bin
 IMG = bin/os.img
-SRC = $(wildcard src/*.asm)
+SRC = $(wildcard src/boot*.asm)
 #OBJ = $(patsubst src/%.asm, obj/%.o, $(SRC))
 OCTAL_DUMP = dump/octal.dump
 HEX_DUMP = dump/hex.dump
