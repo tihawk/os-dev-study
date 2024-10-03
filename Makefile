@@ -6,39 +6,56 @@ OD = od
 OD_FLAGS = -A n -v
 OD_OCTAL_FLAG = -t o1
 OD_HEX_FLAG = -t x1
-OD_BINARY_FLAG = -t b1
 
 # Files
-BIN = bin/os.bin
-IMG = bin/os.img
-SRC = $(wildcard src/boot*.asm)
+BOOT_SEC_SRC = $(wildcard src/boot*.asm)
+BOOT_SEC_BIN = bin/boot.bin
+KERNEL_SRC = $(wildcard src/*.c)
+KERNEL_OBJ = $(patsubst src/%.c, obj/%.o, $(KERNEL_SRC))
+KERNEL_BIN = bin/kernel.bin
+OS_BIN = bin/os.bin
+OS_IMG = bin/os.img
 OCTAL_DUMP = dump/octal.dump
 HEX_DUMP = dump/hex.dump
 
 run: clean default
-	$(QEMU) ./$(IMG)
+	$(QEMU) ./$(OS_IMG)
 
-default: $(IMG)
+default: $(OS_IMG)
 
 clean:
+	rm -f obj/*
 	rm -f bin/*
 	rm -f dump/*
 
-$(IMG): $(BIN)
-	dd if=/dev/zero of=$(IMG) bs=512 count=2880
-	dd if=$(BIN) of=$(IMG) conv=notrunc
+$(OS_IMG): $(OS_BIN)
+	dd if=/dev/zero of=$@ bs=512 count=2880
+	dd if=$? of=$@ conv=notrunc
 
-$(BIN): $(SRC)
-	$(ASM) $(ASM_FLAGS) -o $(BIN) $(SRC)
+$(OS_BIN): $(BOOT_SEC_BIN) $(KERNEL_BIN)
+	cat $? > $@
 
-$(OCTAL_DUMP): $(IMG)
-	$(OD) $(OD_FLAGS) $(OD_OCTAL_FLAG) $(BIN) > $(OCTAL_DUMP)
+# BOOT SECTOR
 
-$(HEX_DUMP): $(IMG)
-	$(OD) $(OD_FLAGS) $(OD_HEX_FLAG) $(BIN) > $(HEX_DUMP)
+$(BOOT_SEC_BIN): $(BOOT_SEC_SRC)
+	$(ASM) $(ASM_FLAGS) -o $@ $?
+
+$(OCTAL_DUMP): $(OS_BIN)
+	$(OD) $(OD_FLAGS) $(OD_OCTAL_FLAG) $? > $@
+
+$(HEX_DUMP): $(OS_BIN)
+	$(OD) $(OD_FLAGS) $(OD_HEX_FLAG) $? > $@
 
 octal: $(OCTAL_DUMP)
 hex: $(HEX_DUMP)
 dump: octal hex
+
+# KERNEL
+
+$(KERNEL_BIN): $(KERNEL_OBJ)
+	ld -o $@ -Ttext 0x1000 $? --oformat binary
+
+$(KERNEL_OBJ): $(KERNEL_SRC)
+	gcc -ffreestanding -c $? -o $@
 
 .PHONY: octal hex dump

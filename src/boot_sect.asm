@@ -1,32 +1,16 @@
 [ORG 0x7c00]
+KERNEL_OFFSET equ 0x1000  ; This is the memory offset to load the kernel to.
 
 mov [BOOT_DRIVE], dl    ; BIOS stores our boot drive in DL, so it's best to
-                        ; remember this for later
+                        ; remember this for later.
 
-mov bp, 0x8000         ; Set stack safely out of the way
-mov sp, bp
-
-mov bx, 0x9000          ; Load 5 sectors to 0 x0000 (ES ):0 x9000 (BX)
-mov dh, 5               ;   from the boot disk
-mov dl, [BOOT_DRIVE]
-call disk_load
-
-mov ax, [0x9000]
-call print_hex_word
-
-mov ax, [0x9000 + 512]
-call print_hex_word
-
-mov bx, MSG_HELLO
-call print_string
-
-; Switching to 32-bit protected mode
-
-mov bp, 0x9000          ; Set the stack
+mov bp, 0x9000         ; Set stack safely out of the way.
 mov sp, bp
 
 mov bx, MSG_REAL_MODE
 call print_string
+
+call load_kernel
 
 call switch_to_pm
 
@@ -39,22 +23,36 @@ jmp $
 %include "src/switch_to_pm.asm"
 %include "src/print_string_pm.asm"
 
+[bits 16]
+
+; Load kernel
+load_kernel:
+  mov bx, MSG_LOAD_KERNEL
+  call print_string
+
+  mov bx, KERNEL_OFFSET     ; Set up parameters for our disk_load routine, so
+  mov dh, 15                ; that we load the first 15 sectors (excluding the
+  mov dl, [BOOT_DRIVE]      ; boot sector) from the boot disk (i.e. our kernel
+  call disk_load            ; code) to address KERNEL_OFFSET.
+  ret
+
 [bits 32]
 ; This is where we arrive after switching to, and initialising protected mode.
 BEGIN_PM:
-  mov ebx, MSG_PROT_MODE
-  call print_string_pm    ; Use our 32-bit print routine.
+  mov ebx, MSG_PROT_MODE  ; Use our 32-bit print routine to announce that we
+  call print_string_pm    ; are in protected mode.
 
-  jmp $
+  call KERNEL_OFFSET      ; Now jump to the address of our loaded kernel code,
+                          ; assume the brace position, and cross your fingers!
+                          ; Here we go!
+
+  jmp $                   ; Hang.
 
 ; Global variables
 BOOT_DRIVE: db 0;
-MSG_HELLO: db "Hello, World!", 0
-MSG_REAL_MODE: db "Started in 16-bit Real Mode", 0
+MSG_LOAD_KERNEL: db "Loading kernel into memory...", 0xA, 0xD, 0
+MSG_REAL_MODE: db "Started in 16-bit Real Mode", 0xA, 0xD, 0
 MSG_PROT_MODE: db "Successfully landed in 32-bit Protected Mode", 0
 
 times 510-($-$$) db 0
 dw 0xAA55
-
-times 256 dw 0xdada
-times 256 dw 0xface
