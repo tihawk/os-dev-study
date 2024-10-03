@@ -3,3 +3,4 @@
 *.deb
 *.img
 *.bin
+dump/*

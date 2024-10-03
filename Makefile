@@ -12,7 +12,6 @@ OD_BINARY_FLAG = -t b1
 BIN = bin/os.bin
 IMG = bin/os.img
 SRC = $(wildcard src/boot*.asm)
-#OBJ = $(patsubst src/%.asm, obj/%.o, $(SRC))
 OCTAL_DUMP = dump/octal.dump
 HEX_DUMP = dump/hex.dump
 
@@ -22,7 +21,6 @@ run: clean default
 default: $(IMG)
 
 clean:
-	rm -f obj/*.o
 	rm -f bin/*
 	rm -f dump/*
 
@@ -44,6 +42,3 @@ hex: $(HEX_DUMP)
 dump: octal hex
 
 .PHONY: octal hex dump
-#obj/%.o: src/%.c
-#	gcc -c $< -o $@ -Iinclude
-
