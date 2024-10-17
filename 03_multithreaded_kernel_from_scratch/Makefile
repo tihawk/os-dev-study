@@ -1,10 +1,14 @@
+# Files
+BOOT_SRC = src/boot.asm
+BOOT_BIN = bin/boot.bin
+
 run: clean default
-	qemu-system-x86_64 -hda boot.bin
+	qemu-system-x86_64 -hda $(BOOT_BIN)
 
 clean:
-	rm -f boot.bin
+	rm -f $(BOOT_BIN)
 
-default: boot.bin
+default: $(BOOT_BIN)
 
-boot.bin: boot.asm
+$(BOOT_BIN): $(BOOT_SRC)
 	nasm -f bin $< -o $@
